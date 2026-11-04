@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'hesaplarim_ekrani.dart';
-
+import '../services/api_servisi.dart';
+import '../services/oturum_servisi.dart';
+import 'yonlendirme.dart';
 // StatefulWidget: içinde değişen veri olan widget.
 // Burada değişen veri, şifrenin gizli mi görünür mü olduğu.
 class GirisEkrani extends StatefulWidget {
@@ -20,6 +21,8 @@ class _GirisEkraniState extends State<GirisEkrani> {
   final _sifreKontrol = TextEditingController();
 
   bool _sifreGizli = true;
+  final _oturumServisi = OturumServisi();
+  bool _yukleniyor = false; // istek sürerken buton pasif olsun, dönen gösterge çıksın
 
   // Ekran kapanınca kontrolcüleri bellekten temizle
   @override
@@ -44,14 +47,27 @@ class _GirisEkraniState extends State<GirisEkrani> {
     return null;
   }
 
-  void _girisYap() {
-    // validate() bütün alanların validator'larını çalıştırır
+  Future<void> _girisYap() async {
+    if (_yukleniyor) return; // çift tıklamayı engelle
     if (!_formAnahtari.currentState!.validate()) return;
 
-    // TODO(2. hafta): /api/oturum/giris ile JWT alınacak
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HesaplarimEkrani()),
-    );
+    setState(() => _yukleniyor = true);
+    try {
+      final oturum = await _oturumServisi.girisYap(_epostaKontrol.text, _sifreKontrol.text);
+
+      // await sırasında ekran kapanmış olabilir
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => anaEkran(oturum)),
+      );
+    } on ApiHatasi catch (hata) {
+      // Ör. "E-posta veya şifre hatalı." ya da "Sunucuya bağlanılamadı."
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(hata.mesaj)));
+    } finally {
+      // finally: başarılı da olsa hata da olsa çalışır
+      if (mounted) setState(() => _yukleniyor = false);
+    }
   }
 
   @override
@@ -116,12 +132,17 @@ class _GirisEkraniState extends State<GirisEkrani> {
                   const SizedBox(height: 24),
 
                   FilledButton(
-                    onPressed: _girisYap,
+                    onPressed: _yukleniyor ? null : _girisYap, // null verilen buton pasif görünür
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text('Giriş Yap'),
-                  ),
+                    child: _yukleniyor
+                        ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                        : const Text('Giriş Yap'),                  ),
                 ],
               ),
             ),

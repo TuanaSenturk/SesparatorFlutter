@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../models/hesap.dart';
+import '../models/oturum.dart';
 import '../services/hesap_servisi.dart';
 import '../utils/bicim.dart';
-import 'giris_ekrani.dart';
+import '../widgets/cikis_butonu.dart';
 
 /// Hesaplarım: kullanıcının hesapları, IBAN ve bakiyeleri.
 class HesaplarimEkrani extends StatefulWidget {
-  const HesaplarimEkrani({super.key});
+  const HesaplarimEkrani({super.key, required this.oturum});
+
+  final Oturum oturum;
 
   @override
   State<HesaplarimEkrani> createState() => _HesaplarimEkraniState();
@@ -27,51 +30,47 @@ class _HesaplarimEkraniState extends State<HesaplarimEkrani> {
     _hesaplar = _hesapServisi.hesaplariGetir();
   }
 
-  void _yenidenDene() {
-    setState(() {
-      _hesaplar = _hesapServisi.hesaplariGetir();
-    });
+  // RefreshIndicator bir Future bekler; Future bitince dönen gösterge kapanır.
+  Future<void> _yenile() async {
+    final yeni = _hesapServisi.hesaplariGetir();
+    setState(() => _hesaplar = yeni);
+    try {
+      await yeni;
+    } catch (_) {
+      // Hata FutureBuilder tarafından ekranda gösterilir, burada bir şey yapmaya gerek yok
+    }
   }
 
-  void _cikisYap() {
-    // pushReplacement: mevcut ekranı yenisiyle değiştirir (geri tuşuyla dönülmez)
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const GirisEkrani()),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hesaplarım'),
-        actions: [
-          IconButton(
-            tooltip: 'Çıkış yap',
-            icon: const Icon(Icons.logout),
-            onPressed: _cikisYap,
-          ),
-        ],
+        actions: const [CikisButonu()],
       ),
       // FutureBuilder: Future'ın durumuna göre (bekliyor / hata / veri geldi) farklı ekran çizer
       body: FutureBuilder<List<Hesap>>(
         future: _hesaplar,
         builder: (context, durum) {
-          // 1) Henüz cevap gelmedi
-          if (durum.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
+            //Sadece İLK yüklemede tam ekran gösterge. Yenilerken eski liste ekranda kalır.
+            if (durum.connectionState != ConnectionState.done && !durum.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
           // 2) Hata oluştu (ApiHatasi mesajı burada görünür)
           if (durum.hasError) {
-            return _HataGorunumu(mesaj: '${durum.error}', onTekrarDene: _yenidenDene);
+            return _HataGorunumu(mesaj: '${durum.error}', onTekrarDene: _yenile);
           }
           // 3) Veri geldi
           final hesaplar = durum.data ?? [];
           if (hesaplar.isEmpty) {
             return const Center(child: Text('Henüz bir hesabınız yok.'));
           }
-          return _HesapListesi(hesaplar: hesaplar);
-        },
+          // RefreshIndicator: listeyi aşağı çekince onRefresh çalışır
+          return RefreshIndicator(
+            onRefresh: _yenile,
+            child: _HesapListesi(hesaplar: hesaplar, ad: widget.oturum.ad),
+          );        },
       ),
     );
   }
@@ -80,9 +79,10 @@ class _HesaplarimEkraniState extends State<HesaplarimEkrani> {
 // ---- Ekranın parçaları: küçük widget'lara bölmek okumayı kolaylaştırır ----
 
 class _HesapListesi extends StatelessWidget {
-  const _HesapListesi({required this.hesaplar});
+  const _HesapListesi({required this.hesaplar, required this.ad});
 
   final List<Hesap> hesaplar;
+  final String ad;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +93,11 @@ class _HesapListesi extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.all(16),
+      // Liste kısa olsa bile aşağı çekilebilsin (yoksa ekranı doldurmayan liste kaydırılamaz)
+      physics: const AlwaysScrollableScrollPhysics(),
       children: [
+        Text('Merhaba, $ad', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 16),
         _ToplamBakiyeKarti(toplam: toplamTl),
         const SizedBox(height: 16),
         for (final hesap in hesaplar) _HesapKarti(hesap: hesap), // listedeki her hesap için bir kart
