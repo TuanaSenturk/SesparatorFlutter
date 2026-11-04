@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import 'screens/giris_ekrani.dart';
+import 'screens/acilis_ekrani.dart';
 
 // Uygulama buradan başlar. runApp, verilen widget'ı ekrana çizer.
 void main() {
@@ -21,7 +20,7 @@ class SesparatorUygulamasi extends StatelessWidget {
         colorSchemeSeed: const Color(0xFF4E73DF), // web'deki SB Admin mavisi
         useMaterial3: true,
       ),
-      home: const GirisEkrani(), // açılışta gösterilecek ekran
+      home: const AcilisEkrani(), // oturumu kontrol edip girişe ya da ana ekrana yönlendirir
     );
   }
 }

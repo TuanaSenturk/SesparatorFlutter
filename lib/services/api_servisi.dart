@@ -5,36 +5,64 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import 'api_ayarlari.dart';
+import 'token_deposu.dart';
 
 /// Ekranda kullanıcıya gösterilecek, anlaşılır hata.
 class ApiHatasi implements Exception {
-  ApiHatasi(this.mesaj);
+  ApiHatasi(this.mesaj, {this.durumKodu});
+
   final String mesaj;
+  final int? durumKodu; // HTTP durum kodu (401, 403, 500...), bağlantı hatasında null
+
+  bool get yetkisiz => durumKodu == 401;
 
   @override
   String toString() => mesaj;
 }
 
 /// Bütün servislerin kullandığı ortak istek sınıfı.
-/// 2. haftada JWT token'ı buradan tüm isteklere eklenecek.
 class ApiServisi {
   final http.Client _istemci = http.Client();
 
-  // async/await: istek bitene kadar uygulamayı dondurmadan bekler.
-  // Future: "ileride gelecek bir değer" demek.
-  Future<dynamic> get(String yol) async {
+  Future<dynamic> get(String yol) => _gonder('GET', yol);
+
+  Future<dynamic> post(String yol, Map<String, dynamic> govde) => _gonder('POST', yol, govde: govde);
+
+  /// Her isteğe eklenen başlıklar. Kayıtlı oturum varsa token da eklenir.
+  Future<Map<String, String>> _basliklar() async {
+    final basliklar = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
+    };
+    final oturum = await TokenDeposu.oku();
+    if (oturum != null) {
+      // JWT standardı: Authorization: Bearer <token>
+      basliklar['Authorization'] = 'Bearer ${oturum.token}';
+    }
+    return basliklar;
+  }
+
+  Future<dynamic> _gonder(String yontem, String yol, {Map<String, dynamic>? govde}) async {
     final adres = Uri.parse('${ApiAyarlari.tabanAdres}$yol');
 
     try {
-      final yanit = await _istemci
-          .get(adres, headers: {'Accept': 'application/json'})
-          .timeout(ApiAyarlari.zamanAsimi);
+      final basliklar = await _basliklar();
+
+      final http.Response yanit;
+      if (yontem == 'POST') {
+        yanit = await _istemci
+            .post(adres, headers: basliklar, body: jsonEncode(govde)) // Map -> JSON metni
+            .timeout(ApiAyarlari.zamanAsimi);
+      } else {
+        yanit = await _istemci.get(adres, headers: basliklar).timeout(ApiAyarlari.zamanAsimi);
+      }
+
+      final metin = utf8.decode(yanit.bodyBytes);
 
       if (yanit.statusCode >= 200 && yanit.statusCode < 300) {
-        // bodyBytes + utf8: Türkçe karakterler bozulmasın
-        return jsonDecode(utf8.decode(yanit.bodyBytes));
+        return metin.isEmpty ? null : jsonDecode(metin);
       }
-      throw ApiHatasi('Sunucu hatası (${yanit.statusCode}).');
+      throw ApiHatasi(_hataMesaji(metin, yanit.statusCode), durumKodu: yanit.statusCode);
     } on SocketException {
       throw ApiHatasi('Sunucuya bağlanılamadı. Web API çalışıyor mu?');
     } on TimeoutException {
@@ -44,5 +72,19 @@ class ApiServisi {
     } on FormatException {
       throw ApiHatasi('Sunucudan beklenmeyen bir yanıt geldi.');
     }
+  }
+
+  /// Sunucu {"mesaj": "..."} gönderdiyse onu kullanır (ör. "E-posta veya şifre hatalı."),
+  /// göndermediyse durum koduna göre genel bir mesaj üretir.
+  String _hataMesaji(String metin, int durumKodu) {
+    try {
+      final veri = jsonDecode(metin);
+      if (veri is Map && veri['mesaj'] is String) return veri['mesaj'] as String;
+    } catch (_) {
+      // gövde JSON değilse aşağıdaki genel mesajlara düş
+    }
+    if (durumKodu == 401) return 'Oturumunuz sona erdi. Lütfen tekrar giriş yapın.';
+    if (durumKodu == 403) return 'Bu işlem için yetkiniz yok.';
+    return 'Sunucu hatası ($durumKodu).';
   }
 }
