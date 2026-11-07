@@ -1,4 +1,5 @@
 import '../models/hesap.dart';
+import '../models/islem.dart';
 import 'api_servisi.dart';
 
 /// Hesaplarla ilgili API istekleri.
@@ -10,5 +11,11 @@ class HesapServisi {
     final veri = await _api.get('/api/hesaplar') as List<dynamic>;
     // JSON listesindeki her öğeyi Hesap nesnesine çevir
     return veri.map((oge) => Hesap.fromJson(oge as Map<String, dynamic>)).toList();
+  }
+
+  /// GET /api/hesaplar/{hesapId}/islemler -> `List<Islem>` (en yeni işlem en başta)
+  Future<List<Islem>> islemleriGetir(int hesapId) async {
+    final veri = await _api.get('/api/hesaplar/$hesapId/islemler') as List<dynamic>;
+    return veri.map((oge) => Islem.fromJson(oge as Map<String, dynamic>)).toList();
   }
 }

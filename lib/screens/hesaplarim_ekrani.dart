@@ -5,6 +5,8 @@ import '../models/oturum.dart';
 import '../services/hesap_servisi.dart';
 import '../utils/bicim.dart';
 import '../widgets/cikis_butonu.dart';
+import '../widgets/hata_gorunumu.dart';
+import 'hesap_detay_ekrani.dart';
 
 /// Hesaplarım: kullanıcının hesapları, IBAN ve bakiyeleri.
 class HesaplarimEkrani extends StatefulWidget {
@@ -59,7 +61,7 @@ class _HesaplarimEkraniState extends State<HesaplarimEkrani> {
             }
           // 2) Hata oluştu (ApiHatasi mesajı burada görünür)
           if (durum.hasError) {
-            return _HataGorunumu(mesaj: '${durum.error}', onTekrarDene: _yenile);
+            return HataGorunumu(mesaj: '${durum.error}', onTekrarDene: _yenile);
           }
           // 3) Veri geldi
           final hesaplar = durum.data ?? [];
@@ -147,62 +149,41 @@ class _HesapKarti extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        // Row: yan yana dizer -> [simge] [ad + IBAN] [bakiye]
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: renkler.primaryContainer,
-              child: Icon(vadesiz ? Icons.account_balance_wallet : Icons.savings),
-            ),
-            const SizedBox(width: 16),
-            // Expanded: kalan boş alanın tamamını kaplar, uzun IBAN taşmaz
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(hesap.hesapAdi, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text(Bicim.iban(hesap.iban), style: TextStyle(fontSize: 12, color: renkler.onSurfaceVariant)),
-                ],
-              ),
-            ),
-            Text(
-              Bicim.para(hesap.bakiye, hesap.paraBirimi),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
+      // clipBehavior: dokunma dalgası kartın yuvarlak köşelerinden taşmasın
+      clipBehavior: Clip.antiAlias,
+      // InkWell: dokunulabilir yapar ve dokununca dalga efekti verir
+      child: InkWell(
+        // push: yeni ekranı üste ekler, geri tuşu bu ekrana döner
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => HesapDetayEkrani(hesap: hesap)),
         ),
-      ),
-    );
-  }
-}
-
-class _HataGorunumu extends StatelessWidget {
-  const _HataGorunumu({required this.mesaj, required this.onTekrarDene});
-
-  final String mesaj;
-  final VoidCallback onTekrarDene; // parametresiz fonksiyon
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.cloud_off, size: 48, color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: 12),
-            Text(mesaj, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: onTekrarDene,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Tekrar dene'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          // Row: yan yana dizer -> [simge] [ad + IBAN] [bakiye]
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: renkler.primaryContainer,
+                child: Icon(vadesiz ? Icons.account_balance_wallet : Icons.savings),
+              ),
+              const SizedBox(width: 16),
+              // Expanded: kalan boş alanın tamamını kaplar, uzun IBAN taşmaz
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(hesap.hesapAdi, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text(Bicim.iban(hesap.iban), style: TextStyle(fontSize: 12, color: renkler.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              Text(
+                Bicim.para(hesap.bakiye, hesap.paraBirimi),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
       ),
     );
