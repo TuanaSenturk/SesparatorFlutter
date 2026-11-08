@@ -28,6 +28,10 @@ class ApiServisi {
 
   Future<dynamic> post(String yol, Map<String, dynamic> govde) => _gonder('POST', yol, govde: govde);
 
+  Future<dynamic> put(String yol, Map<String, dynamic> govde) => _gonder('PUT', yol, govde: govde);
+
+  Future<dynamic> delete(String yol) => _gonder('DELETE', yol);
+
   /// Her isteğe eklenen başlıklar. Kayıtlı oturum varsa token da eklenir.
   Future<Map<String, String>> _basliklar() async {
     final basliklar = {
@@ -47,15 +51,15 @@ class ApiServisi {
 
     try {
       final basliklar = await _basliklar();
+      final govdeMetni = govde == null ? null : jsonEncode(govde); // Map -> JSON metni
 
-      final http.Response yanit;
-      if (yontem == 'POST') {
-        yanit = await _istemci
-            .post(adres, headers: basliklar, body: jsonEncode(govde)) // Map -> JSON metni
-            .timeout(ApiAyarlari.zamanAsimi);
-      } else {
-        yanit = await _istemci.get(adres, headers: basliklar).timeout(ApiAyarlari.zamanAsimi);
-      }
+      // Yönteme göre doğru isteği seç
+      final http.Response yanit = await (switch (yontem) {
+        'POST' => _istemci.post(adres, headers: basliklar, body: govdeMetni),
+        'PUT' => _istemci.put(adres, headers: basliklar, body: govdeMetni),
+        'DELETE' => _istemci.delete(adres, headers: basliklar),
+        _ => _istemci.get(adres, headers: basliklar),
+      }).timeout(ApiAyarlari.zamanAsimi);
 
       final metin = utf8.decode(yanit.bodyBytes);
 
@@ -80,6 +84,13 @@ class ApiServisi {
     try {
       final veri = jsonDecode(metin);
       if (veri is Map && veri['mesaj'] is String) return veri['mesaj'] as String;
+      // ASP.NET doğrulama hatası: {"errors": {"TakmaAd": ["..."], "Iban": ["..."]}}
+      if (veri is Map && veri['errors'] is Map) {
+        final mesajlar = (veri['errors'] as Map).values
+            .expand((liste) => liste as List)
+            .map((m) => m.toString());
+        if (mesajlar.isNotEmpty) return mesajlar.join('\n');
+      }
     } catch (_) {
       // gövde JSON değilse aşağıdaki genel mesajlara düş
     }
