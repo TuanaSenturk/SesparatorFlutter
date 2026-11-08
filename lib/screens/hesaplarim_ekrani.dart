@@ -7,6 +7,7 @@ import '../utils/bicim.dart';
 import '../widgets/cikis_butonu.dart';
 import '../widgets/hata_gorunumu.dart';
 import 'hesap_detay_ekrani.dart';
+import 'kayitli_alicilar_ekrani.dart';
 
 /// Hesaplarım: kullanıcının hesapları, IBAN ve bakiyeleri.
 class HesaplarimEkrani extends StatefulWidget {
@@ -49,7 +50,19 @@ class _HesaplarimEkraniState extends State<HesaplarimEkrani> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hesaplarım'),
-        actions: const [CikisButonu()],
+        actions: [
+          IconButton(
+            tooltip: 'Kayıtlı alıcılar',
+            icon: const Icon(Icons.people_outline),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const KayitliAlicilarEkrani()),
+            ),
+          ),
+          const CikisButonu(),
+        ],
+        /* Ne işe yarar: Plandaki alt sekmeler Hesaplarım, Asistan ve Kartlar, Kayıtlı Alıcılar bunlardan biri değil.
+        Bu yüzden ekrana Hesaplarım’ın üst çubuğundan giriliyor. Listede artık const olmayan bir öğe (IconButton ve
+        içindeki fonksiyon) olduğu için const listenin başından kalkıp CikisButonu’nun önüne geçti.*/
       ),
       // FutureBuilder: Future'ın durumuna göre (bekliyor / hata / veri geldi) farklı ekran çizer
       body: FutureBuilder<List<Hesap>>(
