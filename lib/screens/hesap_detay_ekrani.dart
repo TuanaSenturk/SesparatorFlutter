@@ -10,7 +10,7 @@ import '../widgets/hata_gorunumu.dart';
 class HesapDetayEkrani extends StatefulWidget {
   const HesapDetayEkrani({super.key, required this.hesap});
 
-  // Hesaplarım'dan gelen hesap. Üstteki kart bunu kullanır, ayrıca istek atmaya gerek yok.
+  // Hesaplarım'dan gelen hesap. İlk çizim için kullanılır, bakiye açılışta ve yenilemede API'den tazelenir.
   final Hesap hesap;
 
   @override
@@ -20,19 +20,36 @@ class HesapDetayEkrani extends StatefulWidget {
 class _HesapDetayEkraniState extends State<HesapDetayEkrani> {
   final _hesapServisi = HesapServisi();
   late Future<List<Islem>> _islemler;
+  late Hesap _hesap = widget.hesap; // başta Hesaplarım'dan gelen değer, yenilenince güncellenir
 
   @override
   void initState() {
     super.initState();
     _islemler = _hesapServisi.islemleriGetir(widget.hesap.id);
+    _hesabiGuncelle(); // ekran açılınca da güncel bakiye gelsin
   }
 
-  // Hesaplarım'daki _yenile ile aynı mantık
+  /// Bakiyeyi sunucudan tazeler. Hata olursa eski değer kalır (işlem listesi hatayı zaten gösterir).
+  Future<void> _hesabiGuncelle() async {
+    try {
+      final hesaplar = await _hesapServisi.hesaplariGetir();
+      final guncel = hesaplar.where((h) => h.id == widget.hesap.id).firstOrNull;
+      if (mounted && guncel != null) setState(() => _hesap = guncel);
+    } catch (_) {
+      // sessizce geç: kartta son bilinen bakiye görünür
+    }
+  }
+
+  // Hesaplarım'daki _yenile ile aynı mantık; ek olarak bakiye de tazelenir
   Future<void> _yenile() async {
     final yeni = _hesapServisi.islemleriGetir(widget.hesap.id);
-    setState(() => _islemler = yeni);
+    // Süslü parantez şart: "=> _islemler = yeni" Future döndürür, setState hata verip ekranı yenilemez
+    setState(() {
+      _islemler = yeni;
+    });
     try {
-      await yeni;
+      // İki istek aynı anda gider, ikisi de bitince yenileme göstergesi kapanır
+      await Future.wait([yeni, _hesabiGuncelle()]);
     } catch (_) {
       // Hata FutureBuilder tarafından ekranda gösterilir
     }
@@ -42,10 +59,10 @@ class _HesapDetayEkraniState extends State<HesapDetayEkrani> {
   Widget build(BuildContext context) {
     return Scaffold(
       // Navigator.push ile açıldığı için AppBar'da geri oku kendiliğinden çıkar
-      appBar: AppBar(title: Text(widget.hesap.hesapAdi)),
+      appBar: AppBar(title: Text(_hesap.hesapAdi)),
       body: Column(
         children: [
-          _HesapBilgiKarti(hesap: widget.hesap), // sabit üst kısım
+          _HesapBilgiKarti(hesap: _hesap), // üst kısım: bakiye yenilemede güncellenir
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Align(
@@ -139,9 +156,15 @@ class _IslemSatiri extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final renkler = Theme.of(context).colorScheme;
-    // Gelen yeşil +, diğerleri kırmızı − (web'deki hesap hareketleri ile aynı)
-    final renk = islem.gelenMi ? Colors.green.shade700 : renkler.error;
-    final isaret = islem.gelenMi ? '+' : '-';
+    // Gelen yeşil +, diğerleri kırmızı − (web'deki hesap hareketleri ile aynı).
+    // İptal edilen ve onay bekleyen işlemler bakiyeyi etkilemez: gri ve işaretsiz gösterilir.
+    final notr = islem.durum == 'IptalEdildi' || islem.durum == 'Beklemede';
+    final renk = notr
+        ? renkler.onSurfaceVariant
+        : islem.gelenMi
+            ? Colors.green.shade700
+            : renkler.error;
+    final isaret = notr ? '' : (islem.gelenMi ? '+' : '-');
 
     // ListTile: [leading] [title / subtitle] [trailing] düzenini hazır verir
     return ListTile(

@@ -28,7 +28,10 @@ class _KayitliAlicilarEkraniState extends State<KayitliAlicilarEkrani> {
   // Hesaplarım'daki _yenile ile aynı mantık
   Future<void> _yenile() async {
     final yeni = _servis.listele();
-    setState(() => _alicilar = yeni);
+    // Süslü parantez şart: "=> _alicilar = yeni" Future döndürür, setState hata verip ekranı yenilemez
+    setState(() {
+      _alicilar = yeni;
+    });
     try {
       await yeni;
     } catch (_) {
