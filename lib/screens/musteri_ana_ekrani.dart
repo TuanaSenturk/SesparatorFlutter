@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/oturum.dart';
+import 'asistan_ekrani.dart';
 import 'hazirlaniyor_ekrani.dart';
 import 'hesaplarim_ekrani.dart';
 
@@ -22,11 +23,7 @@ class _MusteriAnaEkraniState extends State<MusteriAnaEkrani> {
   // late: widget.oturum'a erişmek için. Normal alan başlatılırken widget henüz kullanılamaz.
   late final List<Widget> _sekmeler = [
     HesaplarimEkrani(oturum: widget.oturum),
-    HazirlaniyorEkrani(
-      baslik: 'Asistan',
-      ikon: Icons.mic,
-      aciklama: 'Sesli asistan 4. haftada eklenecek.',
-    ),
+    const AsistanEkrani(),
     HazirlaniyorEkrani(
       baslik: 'Kartlarım',
       ikon: Icons.credit_card,
