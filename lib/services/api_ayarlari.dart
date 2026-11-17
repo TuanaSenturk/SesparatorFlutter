@@ -8,4 +8,8 @@ class ApiAyarlari {
   );
 
   static const Duration zamanAsimi = Duration(seconds: 10);
+
+  // Asistan isteği sunucuda Gemini'ye gidiyor (sunucunun Gemini süresi 15 sn).
+  // Mobil, sunucudan önce vazgeçmesin diye daha uzun bekler.
+  static const Duration asistanZamanAsimi = Duration(seconds: 40);
 }

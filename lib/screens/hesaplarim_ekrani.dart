@@ -36,7 +36,10 @@ class _HesaplarimEkraniState extends State<HesaplarimEkrani> {
   // RefreshIndicator bir Future bekler; Future bitince dönen gösterge kapanır.
   Future<void> _yenile() async {
     final yeni = _hesapServisi.hesaplariGetir();
-    setState(() => _hesaplar = yeni);
+    // Süslü parantez şart: "=> _hesaplar = yeni" Future döndürür, setState hata verip ekranı yenilemez
+    setState(() {
+      _hesaplar = yeni;
+    });
     try {
       await yeni;
     } catch (_) {
