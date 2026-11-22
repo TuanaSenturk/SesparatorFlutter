@@ -6,6 +6,7 @@ import '../services/kayitli_alici_servisi.dart';
 import '../utils/bicim.dart';
 import '../widgets/hata_gorunumu.dart';
 import 'kayitli_alici_form_ekrani.dart';
+import 'para_gonder_ekrani.dart';
 
 /// Kayıtlı alıcılar: listeleme, ekleme/düzenleme (form) ve kaydırarak silme.
 class KayitliAlicilarEkrani extends StatefulWidget {
@@ -140,7 +141,13 @@ class _KayitliAlicilarEkraniState extends State<KayitliAlicilarEkrani> {
                     title: Text(alici.takmaAd, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text('${alici.adSoyad}\n${Bicim.iban(alici.iban)}'),
                     isThreeLine: true,
-                    trailing: const Icon(Icons.edit_outlined),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.send_outlined),
+                      tooltip: 'Para gönder',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => ParaGonderEkrani(seciliAlici: alici)),
+                      ),
+                    ),
                     onTap: () => _formuAc(alici), // dokununca düzenleme formu
                   ),
                 );
