@@ -26,7 +26,9 @@ class ApiServisi {
 
   Future<dynamic> get(String yol) => _gonder('GET', yol);
 
-  Future<dynamic> post(String yol, Map<String, dynamic> govde) => _gonder('POST', yol, govde: govde);
+  // zamanAsimi verilmezse ApiAyarlari.zamanAsimi kullanılır
+  Future<dynamic> post(String yol, Map<String, dynamic> govde, {Duration? zamanAsimi}) =>
+      _gonder('POST', yol, govde: govde, zamanAsimi: zamanAsimi);
 
   Future<dynamic> put(String yol, Map<String, dynamic> govde) => _gonder('PUT', yol, govde: govde);
 
@@ -46,7 +48,12 @@ class ApiServisi {
     return basliklar;
   }
 
-  Future<dynamic> _gonder(String yontem, String yol, {Map<String, dynamic>? govde}) async {
+  Future<dynamic> _gonder(
+    String yontem,
+    String yol, {
+    Map<String, dynamic>? govde,
+    Duration? zamanAsimi,
+  }) async {
     final adres = Uri.parse('${ApiAyarlari.tabanAdres}$yol');
 
     try {
@@ -59,7 +66,7 @@ class ApiServisi {
         'PUT' => _istemci.put(adres, headers: basliklar, body: govdeMetni),
         'DELETE' => _istemci.delete(adres, headers: basliklar),
         _ => _istemci.get(adres, headers: basliklar),
-      }).timeout(ApiAyarlari.zamanAsimi);
+      }).timeout(zamanAsimi ?? ApiAyarlari.zamanAsimi);
 
       final metin = utf8.decode(yanit.bodyBytes);
 

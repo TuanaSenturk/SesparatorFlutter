@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 class Bicim {
   static final NumberFormat _sayi = NumberFormat('#,##0.00', 'tr_TR');
   static final DateFormat _tarih = DateFormat('dd.MM.yyyy HH:mm', 'tr_TR');
+  static final DateFormat _saat = DateFormat('HH:mm', 'tr_TR');
 
   /// 71900 -> "71.900,00 TL"
   static String para(double tutar, [String paraBirimi = 'TRY']) {
@@ -23,4 +24,7 @@ class Bicim {
 
   /// 2026-09-14 20:00 -> "14.09.2026 20:00" (web'deki tarih biçimi ile aynı)
   static String tarih(DateTime tarih) => _tarih.format(tarih);
+
+  /// 2026-11-12 14:05 -> "14:05" (sohbet balonlarındaki saat)
+  static String saat(DateTime zaman) => _saat.format(zaman);
 }
