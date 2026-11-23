@@ -8,6 +8,7 @@ import '../widgets/cikis_butonu.dart';
 import '../widgets/hata_gorunumu.dart';
 import 'hesap_detay_ekrani.dart';
 import 'kayitli_alicilar_ekrani.dart';
+import 'para_gonder_ekrani.dart';
 
 /// Hesaplarım: kullanıcının hesapları, IBAN ve bakiyeleri.
 class HesaplarimEkrani extends StatefulWidget {
@@ -66,6 +67,16 @@ class _HesaplarimEkraniState extends State<HesaplarimEkrani> {
         /* Ne işe yarar: Plandaki alt sekmeler Hesaplarım, Asistan ve Kartlar, Kayıtlı Alıcılar bunlardan biri değil.
         Bu yüzden ekrana Hesaplarım’ın üst çubuğundan giriliyor. Listede artık const olmayan bir öğe (IconButton ve
         içindeki fonksiyon) olduğu için const listenin başından kalkıp CikisButonu’nun önüne geçti.*/
+      ),
+      floatingActionButton: FloatingActionButton.extended(   // ← buraya
+        icon: const Icon(Icons.send),
+        label: const Text('Para Gönder'),
+        onPressed: () async {
+          final gonderildi = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(builder: (_) => const ParaGonderEkrani()),
+          );
+          if (gonderildi == true) _yenile();
+        },
       ),
       // FutureBuilder: Future'ın durumuna göre (bekliyor / hata / veri geldi) farklı ekran çizer
       body: FutureBuilder<List<Hesap>>(
