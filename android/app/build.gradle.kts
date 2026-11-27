@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.sesparator.sesparator"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler (mikrofon izni) SDK 37 ile derlenmeyi istiyor; targetSdk/minSdk değişmedi
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

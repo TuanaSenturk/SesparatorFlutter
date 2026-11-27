@@ -5,6 +5,7 @@ import '../services/api_servisi.dart';
 import '../services/asistan_servisi.dart';
 import '../widgets/cikis_butonu.dart';
 import '../widgets/mesaj_balonu.dart';
+import '../widgets/mikrofon_butonu.dart';
 
 /// Asistan sekmesi: yazılı komut gönderme ve mesaj balonları.
 class AsistanEkrani extends StatefulWidget {
@@ -106,6 +107,14 @@ class _AsistanEkraniState extends State<AsistanEkrani> {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  // Dokun-konuş: algılanan metin yazılı komutla aynı yoldan asistana gider
+                  MikrofonButonu(
+                    aktif: !_bekleniyor,
+                    onMetin: (metin) => _gonder(metin),
+                    onHata: (mesaj) => ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text(mesaj))),
+                  ),
+                  const SizedBox(width: 4),
                   IconButton.filled(
                     tooltip: 'Gönder',
                     icon: const Icon(Icons.send),
