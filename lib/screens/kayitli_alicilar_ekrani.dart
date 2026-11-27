@@ -159,12 +159,3 @@ class _KayitliAlicilarEkraniState extends State<KayitliAlicilarEkrani> {
     );
   }
 }
-/*
-Listeleme: FutureBuilder, HataGorunumu ve aşağı çekip yenileme Hesaplarım ekranındakiyle aynı. IBAN, Bicim.iban ile 4'erli
-gruplar hâlinde gösterilir.
-Silme: confirmDismiss önce onay sorar, sonra DELETE atar. Sunucu hata verirse false döner ve satır geri gelir. Böylece ek-
-randa silinmiş görünüp veritabanında duran bir kayıt kalmaz.
-onDismissed: Satırı listeden de çıkarır. Bunu yapmazsan Flutter “A dismissed Dismissible widget is still part of the tree”
-hatası verir.
-Ekleme ve düzenleme: “Alıcı ekle” butonu boş formu, satıra dokunmak dolu formu açar.
- */

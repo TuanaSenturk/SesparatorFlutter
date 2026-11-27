@@ -27,6 +27,7 @@ class _AsistanEkraniState extends State<AsistanEkrani> {
     ),
   ];
   bool _bekleniyor = false; // yanıt gelene kadar gönder butonu pasif
+  bool _dinleniyor = false; // mikrofon kayıttayken metin kutusu salt okunur
 
   @override
   void dispose() {
@@ -93,14 +94,17 @@ class _AsistanEkraniState extends State<AsistanEkrani> {
                   Expanded(
                     child: TextField(
                       controller: _metin,
+                      readOnly: _dinleniyor,
                       minLines: 1,
                       maxLines: 4,
                       maxLength: 1000, // API'deki MaxLength(1000) kuralı
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _gonder(),
-                      decoration: const InputDecoration(
-                        hintText: 'Bir komut yazın…',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        hintText: _dinleniyor
+                            ? 'Dinleniyor… bitirmek için tekrar dokunun'
+                            : 'Bir komut yazın…',
+                        border: const OutlineInputBorder(),
                         counterText: '', // karakter sayacını gizle
                         isDense: true,
                       ),
@@ -111,8 +115,19 @@ class _AsistanEkraniState extends State<AsistanEkrani> {
                   MikrofonButonu(
                     aktif: !_bekleniyor,
                     onMetin: (metin) => _gonder(metin),
-                    onHata: (mesaj) => ScaffoldMessenger.of(context)
-                        .showSnackBar(SnackBar(content: Text(mesaj))),
+                    // Anlaşılamadı / bağlantı / izin hataları yazılı komuttaki gibi sohbette görünür
+                    onHata: (mesaj) {
+                      if (!mounted) return; // yanıt gelmeden çıkış yapıldıysa
+                      setState(() {
+                        _mesajlar.add(SohbetMesaji.hata(mesaj));
+                      });
+                    },
+                    onDurumDegisti: (dinleniyor) {
+                      if (!mounted) return;
+                      setState(() {
+                        _dinleniyor = dinleniyor;
+                      });
+                    },
                   ),
                   const SizedBox(width: 4),
                   IconButton.filled(

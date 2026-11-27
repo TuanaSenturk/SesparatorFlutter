@@ -68,7 +68,7 @@ class _HesaplarimEkraniState extends State<HesaplarimEkrani> {
         Bu yüzden ekrana Hesaplarım’ın üst çubuğundan giriliyor. Listede artık const olmayan bir öğe (IconButton ve
         içindeki fonksiyon) olduğu için const listenin başından kalkıp CikisButonu’nun önüne geçti.*/
       ),
-      floatingActionButton: FloatingActionButton.extended(   // ← buraya
+      floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.send),
         label: const Text('Para Gönder'),
         onPressed: () async {
