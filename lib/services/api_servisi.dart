@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'api_ayarlari.dart';
 import 'token_deposu.dart';
@@ -48,25 +49,53 @@ class ApiServisi {
     return basliklar;
   }
 
+  /// JSON istekleri (GET, POST, PUT, DELETE)
   Future<dynamic> _gonder(
     String yontem,
     String yol, {
     Map<String, dynamic>? govde,
     Duration? zamanAsimi,
-  }) async {
+  }) {
+    final govdeMetni = govde == null ? null : jsonEncode(govde); // Map -> JSON metni
+
+    // Yönteme göre doğru isteği seç
+    return _istekAt(yol, zamanAsimi, (adres, basliklar) => switch (yontem) {
+          'POST' => _istemci.post(adres, headers: basliklar, body: govdeMetni),
+          'PUT' => _istemci.put(adres, headers: basliklar, body: govdeMetni),
+          'DELETE' => _istemci.delete(adres, headers: basliklar),
+          _ => _istemci.get(adres, headers: basliklar),
+        });
+  }
+
+  /// multipart/form-data ile dosya yükler (ör. ses kaydı).
+  Future<dynamic> dosyaGonder(
+    String yol,
+    String alanAdi,
+    String dosyaYolu,
+    MediaType tur, {
+    Duration? zamanAsimi,
+  }) {
+    return _istekAt(yol, zamanAsimi, (adres, basliklar) async {
+      // JSON başlığı kalırsa sunucu gövdeyi form olarak okuyamaz; doğru başlığı http paketi yazar
+      basliklar.remove('Content-Type');
+      final istek = http.MultipartRequest('POST', adres)
+        ..headers.addAll(basliklar)
+        ..files.add(await http.MultipartFile.fromPath(alanAdi, dosyaYolu, contentType: tur));
+      return http.Response.fromStream(await _istemci.send(istek));
+    });
+  }
+
+  /// Ortak kısım: token başlığı, zaman aşımı, yanıtın çözülmesi ve Türkçe hata mesajları.
+  Future<dynamic> _istekAt(
+    String yol,
+    Duration? zamanAsimi,
+    Future<http.Response> Function(Uri adres, Map<String, String> basliklar) istek,
+  ) async {
     final adres = Uri.parse('${ApiAyarlari.tabanAdres}$yol');
 
     try {
-      final basliklar = await _basliklar();
-      final govdeMetni = govde == null ? null : jsonEncode(govde); // Map -> JSON metni
-
-      // Yönteme göre doğru isteği seç
-      final http.Response yanit = await (switch (yontem) {
-        'POST' => _istemci.post(adres, headers: basliklar, body: govdeMetni),
-        'PUT' => _istemci.put(adres, headers: basliklar, body: govdeMetni),
-        'DELETE' => _istemci.delete(adres, headers: basliklar),
-        _ => _istemci.get(adres, headers: basliklar),
-      }).timeout(zamanAsimi ?? ApiAyarlari.zamanAsimi);
+      final yanit = await istek(adres, await _basliklar())
+          .timeout(zamanAsimi ?? ApiAyarlari.zamanAsimi);
 
       final metin = utf8.decode(yanit.bodyBytes);
 
